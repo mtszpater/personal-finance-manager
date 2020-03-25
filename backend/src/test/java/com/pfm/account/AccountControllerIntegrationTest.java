@@ -36,19 +36,6 @@ import org.springframework.http.HttpHeaders;
 
 public class AccountControllerIntegrationTest extends IntegrationTestsBase {
 
-  public static final String MARK_AS_ARCHIVED = "/markAsArchived";
-  public static final String MARK_AS_ACTIVE = "/markAsActive";
-
-  @SuppressWarnings("unused")
-  private static Collection<Object[]> emptyAccountNameParameters() {
-    return Arrays.asList(new Object[][]{
-        {"", null},
-        {" ", null},
-        {"    ", null},
-        {null, null}
-    });
-  }
-
   @BeforeEach
   public void setUp() throws Exception {
     userId = callRestToRegisterUserAndReturnUserId(userMarian());
@@ -585,6 +572,16 @@ public class AccountControllerIntegrationTest extends IntegrationTestsBase {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$", hasSize(1)))
         .andExpect(jsonPath("$[0]", is(String.format(getMessage(ACCOUNT_TYPE_ID_DOES_NOT_EXIST), notExistingAccountTypeId))));
+  }
+
+  @SuppressWarnings("unused")
+  private static Collection<Object[]> emptyAccountNameParameters() {
+    return Arrays.asList(new Object[][]{
+        {"", null},
+        {" ", null},
+        {"    ", null},
+        {null, null}
+    });
   }
 
 }
