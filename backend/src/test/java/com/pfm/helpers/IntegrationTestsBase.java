@@ -1,21 +1,25 @@
 package com.pfm.helpers;
 
 import static com.pfm.account.AccountControllerIntegrationTest.MARK_AS_ARCHIVED;
+import static com.pfm.export.ImportHelper.CATEGORY_NAMED_IMPORTED;
 import static com.pfm.helpers.TestAccountProvider.accountJacekBalance1000;
 import static com.pfm.helpers.TestCategoryProvider.categoryFood;
 import static com.pfm.helpers.TestTransactionProvider.foodPlannedTransactionWithNoAccountAndNoCategory;
 import static com.pfm.helpers.TestTransactionProvider.foodTransactionWithNoAccountAndNoCategory;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pfm.account.Account;
 import com.pfm.account.AccountRequest;
+import com.pfm.account.type.AccountType;
 import com.pfm.account.type.AccountTypeService;
 import com.pfm.auth.Token;
 import com.pfm.auth.Tokens;
@@ -51,6 +55,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -63,6 +69,7 @@ public abstract class IntegrationTestsBase {
   protected static final String ACCOUNTS_SERVICE_PATH = "/accounts";
   protected static final String CATEGORIES_SERVICE_PATH = "/categories";
   protected static final String TRANSACTIONS_SERVICE_PATH = "/transactions";
+  protected static final String CSV_IMPORT_SERVICE_PATH = "/csvImport";
   protected static final String SET_AS_RECURRENT = "/setAsRecurrent";
   protected static final String USERS_SERVICE_PATH = "/users";
   protected static final String FILTERS_SERVICE_PATH = "/filters";
@@ -156,6 +163,15 @@ public abstract class IntegrationTestsBase {
     return getAccountsFromResponse(response);
   }
 
+  protected List<AccountType> callRestToGetAllAccountTypes(String token) throws Exception {
+    String response = mockMvc.perform(get(ACCOUNT_TYPE_SERVICE_PATH)
+        .header(HttpHeaders.AUTHORIZATION, token))
+        .andExpect(content().contentType(JSON_CONTENT_TYPE))
+        .andExpect(status().isOk())
+        .andReturn().getResponse().getContentAsString();
+    return getAccountTypesFromResponse(response);
+  }
+
   protected void callRestToDeleteAccountById(long id, String token) throws Exception {
     mockMvc.perform(delete(ACCOUNTS_SERVICE_PATH + "/" + id)
         .header(HttpHeaders.AUTHORIZATION, token))
@@ -205,9 +221,41 @@ public abstract class IntegrationTestsBase {
 
   }
 
+  protected List<Transaction> callRestToImportTransactionsFromCsvFileAndReturnParsedTransactions(MockMultipartFile mockMultipartFile,
+      long importTargetAccountId) throws Exception {
+    final String response = callRestToImportTransactionsFromCsvFileAndReturnResponse(importTargetAccountId, mockMultipartFile)
+        .getContentAsString();
+    return getParsedTransactionsFromResponse(response);
+  }
+
+  protected int callRestToImportTransactionsFromCsvFileAndReturnStatus(long importTargetAccountId,
+      MockMultipartFile mockMultipartFile) throws Exception {
+    return callRestToImportTransactionsFromCsvFileAndReturnResponse(importTargetAccountId, mockMultipartFile).getStatus();
+  }
+
+  private MockHttpServletResponse callRestToImportTransactionsFromCsvFileAndReturnResponse(long importTargetAccountId,
+      MockMultipartFile mockMultipartFile) throws Exception {
+    return mockMvc.perform(multipart(CSV_IMPORT_SERVICE_PATH)
+        .file(mockMultipartFile)
+        .param("accountId", String.valueOf(importTargetAccountId))
+        .header(HttpHeaders.AUTHORIZATION, token)
+        .contentType(MediaType.MULTIPART_FORM_DATA))
+        .andReturn()
+        .getResponse();
+  }
+
+  protected List<Transaction> getParsedTransactionsFromResponse(String response) throws JsonProcessingException {
+    return mapper.readValue(response, mapper.getTypeFactory().constructCollectionType(List.class, Transaction.class));
+  }
+
   private List<Account> getAccountsFromResponse(String response) throws Exception {
     return mapper.readValue(response,
         mapper.getTypeFactory().constructCollectionType(List.class, Account.class));
+  }
+
+  private List<AccountType> getAccountTypesFromResponse(String response) throws Exception {
+    return mapper.readValue(response,
+        mapper.getTypeFactory().constructCollectionType(List.class, AccountType.class));
   }
 
   private Account jsonToAccount(String jsonAccount) throws Exception {
@@ -273,6 +321,14 @@ public abstract class IntegrationTestsBase {
         .andExpect(status().isOk())
         .andReturn().getResponse().getContentAsString();
     return getCategoriesFromResponse(response);
+  }
+
+  protected Long callRestToGetCategoryNamedImportedId(String token) throws Exception {
+    return callRestToGetAllCategories(token).stream()
+        .filter(category -> category.getName().equals(CATEGORY_NAMED_IMPORTED))
+        .map(Category::getId)
+        .findFirst()
+        .get();
   }
 
   protected void callRestToDeleteCategoryById(long id, String token) throws Exception {

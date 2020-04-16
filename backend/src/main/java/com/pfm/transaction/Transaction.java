@@ -32,6 +32,9 @@ public final class Transaction {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  @JsonIgnore
+  private String internalId;
+
   // TODO -- add Swagger annotations - type is used in getAllTransactions
   @HistoryField
   private String description;

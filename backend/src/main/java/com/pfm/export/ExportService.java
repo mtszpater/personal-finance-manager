@@ -165,6 +165,7 @@ public class ExportService {
   private List<ExportCategory> prepareExportCategories(long userId) {
     return categoryService.getCategories(userId)
         .stream()
+        .sorted(Comparator.comparing(Category::getPriority))
         .map(category -> ExportCategory.builder()
             .name(category.getName())
             .priority(category.getPriority())

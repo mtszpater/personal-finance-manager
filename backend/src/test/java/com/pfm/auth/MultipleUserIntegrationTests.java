@@ -14,6 +14,7 @@ import static com.pfm.helpers.TestCategoryProvider.categoryAnimals;
 import static com.pfm.helpers.TestCategoryProvider.categoryCar;
 import static com.pfm.helpers.TestCategoryProvider.categoryFood;
 import static com.pfm.helpers.TestCategoryProvider.categoryHome;
+import static com.pfm.helpers.TestCategoryProvider.categoryImported;
 import static com.pfm.helpers.TestFilterProvider.convertIdsToList;
 import static com.pfm.helpers.TestFilterProvider.filterExpensesOver1000;
 import static com.pfm.helpers.TestFilterProvider.filterHomeExpensesUpTo200;
@@ -542,16 +543,22 @@ public class MultipleUserIntegrationTests extends IntegrationTestsBase {
 
     final List<Category> marianCategories = callRestToGetAllCategories(marianToken);
 
+    Category marianImportedCategoryExpected = categoryImported();
+    marianImportedCategoryExpected.setId(13L);
+
     Category marianCategoryCarExpected = categoryCar();
     marianCategoryCarExpected.setId(marianCategoryCarId);
 
     Category marianCategoryFoodExpected = categoryFood();
     marianCategoryFoodExpected.setId(marianCategoryFoodId);
 
-    assertThat(marianCategories, hasSize(2));
-    assertThat(marianCategories, containsInAnyOrder(marianCategoryCarExpected, marianCategoryFoodExpected));
+    assertThat(marianCategories, hasSize(3));
+    assertThat(marianCategories, containsInAnyOrder(marianImportedCategoryExpected, marianCategoryCarExpected, marianCategoryFoodExpected));
 
     final List<Category> zdzislawCategories = callRestToGetAllCategories(zdzislawToken);
+
+    Category zdzislawImportedCategoryExpected = categoryImported();
+    zdzislawImportedCategoryExpected.setId(14L);
 
     Category zdzislawCategoryHomeExpected = categoryHome();
     zdzislawCategoryHomeExpected.setId(zdzislawCategoryHomeId);
@@ -559,8 +566,9 @@ public class MultipleUserIntegrationTests extends IntegrationTestsBase {
     Category zdzislawCategoryAnimalsExpected = categoryAnimals();
     zdzislawCategoryAnimalsExpected.setId(zdzislawCategoryAnimalsId);
 
-    assertThat(zdzislawCategories, hasSize(2));
-    assertThat(zdzislawCategories, containsInAnyOrder(zdzislawCategoryAnimalsExpected, zdzislawCategoryHomeExpected));
+    assertThat(zdzislawCategories, hasSize(3));
+    assertThat(zdzislawCategories,
+        containsInAnyOrder(zdzislawImportedCategoryExpected, zdzislawCategoryAnimalsExpected, zdzislawCategoryHomeExpected));
 
     final List<Transaction> marianTransactions = callRestToGetAllTransactionsFromDatabase(marianToken);
 

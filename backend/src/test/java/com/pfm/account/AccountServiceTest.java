@@ -14,7 +14,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -65,7 +64,7 @@ public class AccountServiceTest {
     Account accountMbank = accountMbankBalance10();
     accountMbank.setId(2L);
 
-    when(accountRepository.findByUserId(MOCK_USER_ID)).thenReturn(Arrays.asList(accountMbank, accountJacek));
+    when(accountRepository.findByUserId(MOCK_USER_ID)).thenReturn(List.of(accountMbank, accountJacek));
 
     //when
     List<Account> actualAccountsList = accountService.getAccounts(MOCK_USER_ID);
