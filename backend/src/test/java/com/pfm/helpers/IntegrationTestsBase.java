@@ -1,7 +1,7 @@
 package com.pfm.helpers;
 
 import static com.pfm.account.AccountControllerIntegrationTest.MARK_AS_ARCHIVED;
-import static com.pfm.export.ImportHelper.CATEGORY_NAMED_IMPORTED;
+import static com.pfm.export.ImportService.CATEGORY_NAMED_IMPORTED;
 import static com.pfm.helpers.TestAccountProvider.accountJacekBalance1000;
 import static com.pfm.helpers.TestCategoryProvider.categoryFood;
 import static com.pfm.helpers.TestTransactionProvider.foodPlannedTransactionWithNoAccountAndNoCategory;

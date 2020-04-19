@@ -1,6 +1,6 @@
 package com.pfm.transaction.csvimport;
 
-import static com.pfm.export.ImportHelper.CATEGORY_NAMED_IMPORTED;
+import static com.pfm.export.ImportService.CATEGORY_NAMED_IMPORTED;
 
 import com.pfm.account.AccountRepository;
 import com.pfm.auth.UserProvider;

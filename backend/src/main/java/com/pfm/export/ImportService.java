@@ -49,8 +49,8 @@ public class ImportService {
   public static final String CATEGORY_NAMED_IMPORTED = "Imported";
   public static final String MORE_THAN_ONE_CATEGORY_NAMED_IMPORTED_FOUND = "More than one category with name " + CATEGORY_NAMED_IMPORTED + " found";
   public static final int CATEGORY_NAMED_IMPORTED_COUNT_ALLOWED = 1;
+
   private CategoryService categoryService;
-  private UserProvider userProvider;
   private CurrencyService currencyService;
   private AccountService accountService;
   private AccountTypeService accountTypeService;
@@ -58,6 +58,7 @@ public class ImportService {
   private TransactionService transactionService;
   private CategoryRepository categoryRepository;
   private HistoryEntryRepository historyEntryRepository;
+  private UserProvider userProvider;
 
   @Transactional
   void importData(@RequestBody ExportResult inputData, long userId) throws ImportFailedException {

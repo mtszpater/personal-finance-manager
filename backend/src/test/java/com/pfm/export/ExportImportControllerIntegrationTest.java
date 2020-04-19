@@ -4,7 +4,7 @@ import static com.pfm.config.MessagesProvider.ACCOUNT_CURRENCY_NAME_DOES_NOT_EXI
 import static com.pfm.config.MessagesProvider.ACCOUNT_TYPE_NAME_DOES_NOT_EXIST;
 import static com.pfm.config.MessagesProvider.IMPORT_NOT_POSSIBLE;
 import static com.pfm.config.MessagesProvider.getMessage;
-import static com.pfm.export.ImportHelper.CATEGORY_NAMED_IMPORTED;
+import static com.pfm.export.ImportService.CATEGORY_NAMED_IMPORTED;
 import static com.pfm.helpers.TestAccountProvider.accountJacekBalance1000;
 import static com.pfm.helpers.TestAccountProvider.accountMbankBalance10;
 import static com.pfm.helpers.TestCategoryProvider.categoryFood;

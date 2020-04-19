@@ -1,6 +1,6 @@
 package com.pfm.auth;
 
-import static com.pfm.export.ImportHelper.CATEGORY_NAMED_IMPORTED;
+import static com.pfm.export.ImportService.CATEGORY_NAMED_IMPORTED;
 
 import com.pfm.account.type.AccountTypeService;
 import com.pfm.category.Category;
