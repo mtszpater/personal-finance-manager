@@ -76,10 +76,104 @@ public class ImportService {
       historyEntry.setUserId(userProvider.getCurrentUserId());
       saveHistoryEntry(historyEntry);
     }
+
   }
 
   @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
-  Map<String, Long> importCategoriesAndMapCategoryNamesToIds(@RequestBody ExportResult inputData, long userId) {
+  private void importFilters(ExportResult inputData, long userId, Map<String, Long> accountNameToIdMap, Map<String, Long> categoryNameToIdMap) {
+    for (ExportFilter importedFilter : inputData.getFilters()) {
+      Filter filter = new Filter();
+      filter.setName(importedFilter.getName());
+      filter.setDateFrom(importedFilter.getDateFrom());
+      filter.setDateTo(importedFilter.getDateTo());
+      filter.setDescription(importedFilter.getDescription());
+      filter.setPriceFrom(importedFilter.getPriceFrom());
+      filter.setPriceTo(importedFilter.getPriceTo());
+      if (importedFilter.getAccounts() != null) {
+        filter.setAccountIds(importedFilter.getAccounts().stream()
+            .map(accountNameToIdMap::get)
+            .collect(Collectors.toList()));
+      }
+      if (importedFilter.getCategories() != null) {
+        filter.setCategoryIds(importedFilter.getCategories().stream()
+            .map(categoryNameToIdMap::get)
+            .collect(Collectors.toList()));
+      }
+
+      filterService.addFilter(userId, filter);
+    }
+  }
+
+  // TODO add checking account state during import based on period start and end balances & overall account states
+  private void importTransaction(Map<String, Long> categoryNameToIdMap, Map<String, Long> accountNameToIdMap, ExportTransaction transaction,
+      long userId) {
+    Transaction newTransaction = Transaction.builder()
+        .description(transaction.getDescription())
+        .accountPriceEntries(new ArrayList<>())
+        .date(transaction.getDate())
+        .categoryId(categoryNameToIdMap.get(transaction.getCategory()))
+        .userId(userId)
+        .build();
+
+    for (ExportAccountPriceEntry entry : transaction.getAccountPriceEntries()) {
+      Long accountId = accountNameToIdMap.get(entry.getAccount());
+
+      newTransaction.getAccountPriceEntries().add(
+          AccountPriceEntry.builder()
+              .accountId(accountId)
+              .price(entry.getPrice())
+              .build()
+      );
+    }
+
+    transactionService.addTransaction(userId, newTransaction, true);
+  }
+
+  private Map<String, Long> importAccountsAndMapAccountNamesToIds(@RequestBody ExportResult inputData, long userId) throws ImportFailedException {
+    Map<String, Currency> currencyMap = currencyService.getCurrencies(userId).stream()
+        .collect(Collectors.toMap(Currency::getName, currency -> currency));
+
+    Map<String, AccountType> accountTypeMap = accountTypeService.getAccountTypes(userId).stream()
+        .collect(Collectors.toMap(AccountType::getName, accountType -> accountType));
+
+    Map<String, Long> accountNameToIdMap = new HashMap<>();
+    for (ExportAccount account : inputData.getInitialAccountsState()) {
+      if (account.getCurrency() == null) { // backward compatibility - set default currency
+        account.setCurrency("PLN");
+      }
+      if (account.getAccountType() == null) { // backward compatibility - set default type
+        account.setAccountType("Personal");
+      }
+
+      Currency currency = currencyMap.get(account.getCurrency());
+
+      if (currency == null) {
+        throw new ImportFailedException(String.format(getMessage(ACCOUNT_CURRENCY_NAME_DOES_NOT_EXIST), account.getCurrency()));
+      }
+
+      AccountType accountType = accountTypeMap.get(account.getAccountType());
+
+      if (accountType == null) {
+        throw new ImportFailedException(String.format(getMessage(ACCOUNT_TYPE_NAME_DOES_NOT_EXIST), account.getCurrency()));
+      }
+
+      Account accountToSave = Account.builder()
+          .name(account.getName())
+          .balance(account.getBalance())
+          .currency(currency)
+          .type(accountType)
+          .lastVerificationDate(account.getLastVerificationDate())
+          .archived(account.isArchived())
+          .build();
+
+      Account savedAccount = accountService.saveAccount(userId, accountToSave);
+      accountNameToIdMap.put(savedAccount.getName(), savedAccount.getId());
+    }
+    return accountNameToIdMap;
+  }
+
+  @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
+  private Map<String, Long> importCategoriesAndMapCategoryNamesToIds(@RequestBody ExportResult inputData, long userId) {
     Map<String, Long> categoryNameToIdMap = new HashMap<>();
 
     List<ExportCategory> categoriesSortedTopologically = sortCategoriesTopologically(inputData.getCategories());
@@ -126,99 +220,6 @@ public class ImportService {
     return TopologicalSortProvider.sort(graph).stream().map(Node::getObject).collect(Collectors.toList());
   }
 
-  Map<String, Long> importAccountsAndMapAccountNamesToIds(@RequestBody ExportResult inputData, long userId) throws ImportFailedException {
-    Map<String, Currency> currencyMap = currencyService.getCurrencies(userId).stream()
-        .collect(Collectors.toMap(Currency::getName, currency -> currency));
-
-    Map<String, AccountType> accountTypeMap = accountTypeService.getAccountTypes(userId).stream()
-        .collect(Collectors.toMap(AccountType::getName, accountType -> accountType));
-
-    Map<String, Long> accountNameToIdMap = new HashMap<>();
-    for (ExportAccount account : inputData.getInitialAccountsState()) {
-      if (account.getCurrency() == null) { // backward compatibility - set default currency
-        account.setCurrency("PLN");
-      }
-      if (account.getAccountType() == null) { // backward compatibility - set default type
-        account.setAccountType("Personal");
-      }
-
-      Currency currency = currencyMap.get(account.getCurrency());
-
-      if (currency == null) {
-        throw new ImportFailedException(String.format(getMessage(ACCOUNT_CURRENCY_NAME_DOES_NOT_EXIST), account.getCurrency()));
-      }
-
-      AccountType accountType = accountTypeMap.get(account.getAccountType());
-
-      if (accountType == null) {
-        throw new ImportFailedException(String.format(getMessage(ACCOUNT_TYPE_NAME_DOES_NOT_EXIST), account.getCurrency()));
-      }
-
-      Account accountToSave = Account.builder()
-          .name(account.getName())
-          .balance(account.getBalance())
-          .currency(currency)
-          .type(accountType)
-          .lastVerificationDate(account.getLastVerificationDate())
-          .archived(account.isArchived())
-          .build();
-
-      Account savedAccount = accountService.saveAccount(userId, accountToSave);
-      accountNameToIdMap.put(savedAccount.getName(), savedAccount.getId());
-    }
-    return accountNameToIdMap;
-  }
-
-  @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
-  void importFilters(ExportResult inputData, long userId, Map<String, Long> accountNameToIdMap, Map<String, Long> categoryNameToIdMap) {
-    for (ExportFilter importedFilter : inputData.getFilters()) {
-      Filter filter = new Filter();
-      filter.setName(importedFilter.getName());
-      filter.setDateFrom(importedFilter.getDateFrom());
-      filter.setDateTo(importedFilter.getDateTo());
-      filter.setDescription(importedFilter.getDescription());
-      filter.setPriceFrom(importedFilter.getPriceFrom());
-      filter.setPriceTo(importedFilter.getPriceTo());
-      if (importedFilter.getAccounts() != null) {
-        filter.setAccountIds(importedFilter.getAccounts().stream()
-            .map(accountNameToIdMap::get)
-            .collect(Collectors.toList()));
-      }
-      if (importedFilter.getCategories() != null) {
-        filter.setCategoryIds(importedFilter.getCategories().stream()
-            .map(categoryNameToIdMap::get)
-            .collect(Collectors.toList()));
-      }
-
-      filterService.addFilter(userId, filter);
-    }
-  }
-
-  // TODO add checking account state during import based on period start and end balances & overall account states
-  void importTransaction(Map<String, Long> categoryNameToIdMap, Map<String, Long> accountNameToIdMap, ExportTransaction transaction,
-      long userId) {
-    Transaction newTransaction = Transaction.builder()
-        .description(transaction.getDescription())
-        .accountPriceEntries(new ArrayList<>())
-        .date(transaction.getDate())
-        .categoryId(categoryNameToIdMap.get(transaction.getCategory()))
-        .userId(userId)
-        .build();
-
-    for (ExportAccountPriceEntry entry : transaction.getAccountPriceEntries()) {
-      Long accountId = accountNameToIdMap.get(entry.getAccount());
-
-      newTransaction.getAccountPriceEntries().add(
-          AccountPriceEntry.builder()
-              .accountId(accountId)
-              .price(entry.getPrice())
-              .build()
-      );
-    }
-
-    transactionService.addTransaction(userId, newTransaction, true);
-  }
-
   void deleteCategoryNamedImportedFromDbIfAlreadyExistToPreventDuplication(long userId) {
     final List<Category> importedCategoryFromDbList = categoryRepository.findByNameIgnoreCaseAndUserId(CATEGORY_NAMED_IMPORTED, userId);
     long categoriesWithNameImportedCount = importedCategoryFromDbList.size();
@@ -228,7 +229,7 @@ public class ImportService {
     categoryService.deleteCategory(importedCategoryFromDbList.get(0).getId());
   }
 
-  void saveHistoryEntry(HistoryEntry historyEntry) {
+  private void saveHistoryEntry(HistoryEntry historyEntry) {
     historyEntryRepository.save(historyEntry);
   }
 }
