@@ -31,15 +31,15 @@ public class CsvImportController {
       @Authorization(value = BEARER)})
   @PostMapping("/csvImport")
   ResponseEntity<?> uploadCsvFileAndParseTransactionsToAccount(@RequestParam("file") MultipartFile file, @RequestParam("accountId") long accountId) {
-    // fixme lukasz   validate content type
+    // FIXME lukasz   validate content type
     long userId = userProvider.getCurrentUserId();
-    if (!file.getContentType().equals(APPLICATION_VND_MS_EXCEL)) {
-      return ResponseEntity.badRequest().body("Uploaded file has wrong content type, only files with " + APPLICATION_VND_MS_EXCEL + " accepted");
-    }
+//    if (!file.getContentType().equals(APPLICATION_VND_MS_EXCEL)) {
+//      return ResponseEntity.badRequest().body("Uploaded file has wrong content type, only files with " + APPLICATION_VND_MS_EXCEL + " accepted");
+//    }
     log.info("Uploaded file: {}, with size: {}, with content type: {}", file.getOriginalFilename(), file.getSize(), file.getContentType());
     List<Transaction> transactions;
     try {
-      transactions = csvParserService.convertToTransactions(file);
+      transactions = csvParserService.convertToTransactions(file, accountId);
 
     } catch (TransactionsParsingException ex) {
       log.error("An error occurred during parsing transactions from csv file {}", ex.getMessage());

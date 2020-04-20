@@ -19,20 +19,18 @@ public class CsvParserService {
 
   private UserProvider userProvider;
   private CategoryRepository categoryRepository;
-  private AccountRepository accountRepository;
   private TransactionRepository transactionRepository;
   private CsvParser csvParser;
   private ParsedIngToTransactionMapper parsedIngToTransactionMapper;
 
-  List<Transaction> convertToTransactions(MultipartFile file) throws TransactionsParsingException {
+  List<Transaction> convertToTransactions(MultipartFile file, long accountId) throws TransactionsParsingException {
     long userId = userProvider.getCurrentUserId();
-    long targetAccountId = accountRepository.getAccountIdByName(userId);
     long importedCategoryId = categoryRepository.findByNameIgnoreCaseAndUserId(CATEGORY_NAMED_IMPORTED, userId).get(0).getId();
     final Set<String> allInternalIds = transactionRepository.getAllInternalIds(userId);
 
     final List<ParsedFromIngCsv> parsedValuesFromCsv = parse(file);
 
-    return parsedIngToTransactionMapper.map(parsedValuesFromCsv, targetAccountId, importedCategoryId, allInternalIds);
+    return parsedIngToTransactionMapper.map(parsedValuesFromCsv, accountId, importedCategoryId, allInternalIds);
   }
 
   private List<ParsedFromIngCsv> parse(MultipartFile file) throws TransactionsParsingException {
