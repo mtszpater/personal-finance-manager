@@ -3,6 +3,7 @@ package com.pfm.export;
 import static com.pfm.export.ImportService.CATEGORY_NAMED_IMPORTED;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -113,6 +114,15 @@ class ExportImportTest {
     //Then
     verify(importService, times(1)).sortCategoriesTopologically(input.getCategories());
     verify(importService, times(1)).deleteCategoryNamedImportedFromDbIfAlreadyExistToPreventDuplication(MOCK_USER_ID);
+    verify(categoryService, times(1)).addCategory(importedCategory, MOCK_USER_ID);
+    verify(currencyService, times(1)).getCurrencies(MOCK_USER_ID);
+    verify(accountTypeService, times(1)).getAccountTypes(MOCK_USER_ID);
+
+    verify(userProvider, never()).getCurrentUserId();
+    verify(accountService, never()).getAccounts(MOCK_USER_ID);
+    verify(filterService, never()).getAllFilters(MOCK_USER_ID);
+    verify(transactionService, never()).getTransactions(MOCK_USER_ID);
+    verify(historyEntryRepository, never()).findByUserId(MOCK_USER_ID);
 
   }
 
