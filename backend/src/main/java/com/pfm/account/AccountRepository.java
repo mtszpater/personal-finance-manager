@@ -27,7 +27,9 @@ public interface AccountRepository extends CrudRepository<Account, Long> {
 
   boolean existsByIdAndUserId(long accountId, long userId);
 
-  default long getAccountIdByName(long userId) {
-    return findByNameIgnoreCaseAndUserId(IMPORT_TARGET_ACCOUNT_NAME, userId).get(0).getId();
+  default Optional<Long> getAccountIdByName(long userId) {
+    final List<Account> byNameIgnoreCaseAndUserId = findByNameIgnoreCaseAndUserId(IMPORT_TARGET_ACCOUNT_NAME, userId);
+    return byNameIgnoreCaseAndUserId.isEmpty() ? Optional.empty() : Optional.ofNullable(byNameIgnoreCaseAndUserId.get(0).getId());
   }
+
 }

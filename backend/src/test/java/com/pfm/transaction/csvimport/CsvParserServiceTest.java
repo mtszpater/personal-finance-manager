@@ -13,6 +13,7 @@ import com.pfm.category.CategoryRepository;
 import com.pfm.helpers.TestCategoryProvider;
 import com.pfm.transaction.TransactionRepository;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,7 +58,7 @@ class CsvParserServiceTest {
     Category categoryFood = TestCategoryProvider.categoryFood();
 
     when(userProvider.getCurrentUserId()).thenReturn(MOCK_USER_ID);
-    when(accountRepository.getAccountIdByName(MOCK_USER_ID)).thenReturn(MOCK_TARGET_ACCOUNT_ID);
+    when(accountRepository.getAccountIdByName(MOCK_USER_ID)).thenReturn(Optional.of(MOCK_TARGET_ACCOUNT_ID));
     when(categoryRepository.findByNameIgnoreCaseAndUserId(MOCK_CATEGORY_NAMED_IMPORTED, MOCK_USER_ID))
         .thenReturn(List.of(categoryAnimals, categoryFood));
     when(transactionRepository.getAllInternalIds(MOCK_USER_ID)).thenReturn(MOCK_ALL_INTERNAL_IDS);
@@ -72,4 +73,15 @@ class CsvParserServiceTest {
     verify(csvParser, times(1)).parse(any());
   }
 
+  @Test
+  void shouldThrowExceptionForNonExistingTargetAccount() throws TargetAccountNotFoundException {
+    //Given
+    when(userProvider.getCurrentUserId()).thenReturn(MOCK_USER_ID);
+    when(accountRepository.getAccountIdByName(MOCK_USER_ID)).thenReturn(Optional.empty());
+
+    //Then
+    assertThrows(TargetAccountNotFoundException.class, () -> csvParserService.convertToTransactions(file));
+    verify(userProvider, times(1)).getCurrentUserId();
+    verify(accountRepository, times(1)).getAccountIdByName(MOCK_USER_ID);
+  }
 }

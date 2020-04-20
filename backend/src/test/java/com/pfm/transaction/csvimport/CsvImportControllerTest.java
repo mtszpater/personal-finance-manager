@@ -7,6 +7,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.pfm.helpers.IntegrationTestsBase;
@@ -59,6 +61,20 @@ class CsvImportControllerTest extends IntegrationTestsBase {
 
     //Then
     assertThat(status, is(equalTo(HttpStatus.SC_BAD_REQUEST)));
+  }
+
+  @Test
+  void shouldReturnBadRequestForNonExistingTargetAccount() throws Exception {
+    //Given
+    MockMultipartFile file = new MockMultipartFile("file", "file", APPLICATION_VND_MS_EXCEL, "file".getBytes(ENCODING));
+    when(csvParserService.convertToTransactions(file)).thenThrow(TargetAccountNotFoundException.class);
+
+    //When
+    final int status = callRestToImportTransactionsFromCsvFileAndReturnStatus(MOCK_ACCOUNT_ID, file);
+
+    //Then
+    assertThat(status, is(equalTo(HttpStatus.SC_BAD_REQUEST)));
+    verify(csvParserService, times(1)).convertToTransactions(file);
   }
 
   private static Stream<Object> shouldReturnBadRequestForWrongUploadedFileContentTypeParams() {

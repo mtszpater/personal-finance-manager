@@ -19,9 +19,12 @@ import java.nio.file.Paths;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
 
 class CsvImportControllerIntegrationTest extends IntegrationTestsBase {
+
+  public static final long NOT_EXISTING_TARGET_ACCOUNT = 9085534L;
 
   @BeforeEach
   public void beforeEach() throws Exception {
@@ -70,9 +73,9 @@ class CsvImportControllerIntegrationTest extends IntegrationTestsBase {
 
   @Test
   void shouldReturnListOfTransactionsWhenUploadingCsvFile() throws Exception {
+    //Given
     final String path = "src/test/resources/onlyValidTransactionsCsvIntegrationTestNoPolishLetters.csv";
     //fixme lukasz solve encoding problem then add more transactions/
-    //Given
 
     Account importTargetAccount = Account.builder()
         .name(IMPORT_TARGET_ACCOUNT_NAME)
@@ -95,9 +98,9 @@ class CsvImportControllerIntegrationTest extends IntegrationTestsBase {
 
   @Test
   void shouldNotAddAgainTransactionsOnAttemptOfImportTransactionsAlreadyImported() throws Exception {
+    //Given
     final String path = "src/test/resources/onlyValidTransactionsCsvIntegrationTestNoPolishLetters.csv";
     //fixme lukasz solve encoding problem then add more transactions/
-    //Given
 
     Account importTargetAccount = Account.builder()
         .name(IMPORT_TARGET_ACCOUNT_NAME)
@@ -127,4 +130,17 @@ class CsvImportControllerIntegrationTest extends IntegrationTestsBase {
     assertThat(allTransactionsFromDbAfterSecondImportTheSameFile, is(equalTo(allTransactionsFromDbAfterFirstFileImport)));
   }
 
+  @Test
+  void shouldReturnBadRequestWhenUploadingCsvFileForNotExistingTargetAccount() throws Exception {
+    //Given
+    final String path = "src/test/resources/onlyValidTransactionsCsvIntegrationTestNoPolishLetters.csv";
+    final byte[] fileBytes = Files.readAllBytes(Paths.get(path));
+    MockMultipartFile mockMultipartFile = new MockMultipartFile("file", "file", APPLICATION_VND_MS_EXCEL, fileBytes);
+
+    //When
+    int status = callRestToImportTransactionsFromCsvFileAndReturnStatus(NOT_EXISTING_TARGET_ACCOUNT, mockMultipartFile);
+
+    //Then
+    assertThat(status, is(equalTo(HttpStatus.BAD_REQUEST.value())));
+  }
 }

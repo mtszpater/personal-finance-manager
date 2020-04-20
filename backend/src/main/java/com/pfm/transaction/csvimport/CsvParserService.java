@@ -8,6 +8,7 @@ import com.pfm.category.CategoryRepository;
 import com.pfm.transaction.Transaction;
 import com.pfm.transaction.TransactionRepository;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 @AllArgsConstructor
 public class CsvParserService {
 
+  public static final String TARGET_ACCOUNT_FOR_PARSED_TRANSACTIONS_NOT_FOUND = "Target account for parsed transactions not found";
   private UserProvider userProvider;
   private CategoryRepository categoryRepository;
   private AccountRepository accountRepository;
@@ -24,14 +26,17 @@ public class CsvParserService {
   private CsvParser csvParser;
   private ParsedIngToTransactionMapper parsedIngToTransactionMapper;
 
-  List<Transaction> convertToTransactions(MultipartFile file) throws TransactionsParsingException {
+  List<Transaction> convertToTransactions(MultipartFile file) throws TransactionsParsingException, TargetAccountNotFoundException {
     long userId = userProvider.getCurrentUserId();
-    long targetAccountId = accountRepository.getAccountIdByName(userId);
+    Optional<Long> targetAccountIdOptional = accountRepository.getAccountIdByName(userId);
+    if (targetAccountIdOptional.isEmpty()) {
+      throw new TargetAccountNotFoundException(TARGET_ACCOUNT_FOR_PARSED_TRANSACTIONS_NOT_FOUND);
+    }
     long importedCategoryId = categoryRepository.findByNameIgnoreCaseAndUserId(CATEGORY_NAMED_IMPORTED, userId).get(0).getId();
     final Set<String> allInternalIds = transactionRepository.getAllInternalIds(userId);
 
     final List<ParsedFromIngCsv> parsedValuesFromCsv = parse(file);
-
+    long targetAccountId = targetAccountIdOptional.get();
     return parsedIngToTransactionMapper.map(parsedValuesFromCsv, targetAccountId, importedCategoryId, allInternalIds);
   }
 
